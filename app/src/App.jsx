@@ -11,7 +11,7 @@ const PERIODS = [
 ]
 
 const ROSTER = [
-  { key: 'principal', displayName: '校长', email: '', status: 'pending' },
+  { key: 'principal', displayName: '校长', email: 'jiangyosuf@gmail.com', status: 'active' },
   { key: 'cmd', displayName: 'cmd', email: 'brriliantcmd@gmail.com', status: 'active' },
   { key: 'xiaogang', displayName: '小刚', email: 'yichunhua137@gmail.com', status: 'active' },
 ]
@@ -109,7 +109,6 @@ function App() {
   const [profiles, setProfiles] = useState([])
   const [events, setEvents] = useState([])
   const [period, setPeriod] = useState('week')
-  const [authMode, setAuthMode] = useState('signin')
   const [authForm, setAuthForm] = useState(INITIAL_AUTH)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -304,38 +303,16 @@ function App() {
     }
 
     try {
-      if (authMode === 'signin') {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: normalizedEmail,
-          password: authForm.password,
-        })
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: authForm.password,
+      })
 
-        if (signInError) {
-          throw signInError
-        }
-
-        setNotice(`欢迎回来，${rosterMember.displayName}。`)
-      } else {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: normalizedEmail,
-          password: authForm.password,
-          options: {
-            data: {
-              display_name: rosterMember.displayName,
-            },
-          },
-        })
-
-        if (signUpError) {
-          throw signUpError
-        }
-
-        if (!data.session) {
-          setNotice(`注册成功，${rosterMember.displayName} 请先去邮箱完成验证。`)
-        } else {
-          setNotice(`注册并登录成功，${rosterMember.displayName} 已就位。`)
-        }
+      if (signInError) {
+        throw signInError
       }
+
+      setNotice(`欢迎回来，${rosterMember.displayName}。`)
 
       setAuthForm(INITIAL_AUTH)
     } catch (submitError) {
@@ -439,38 +416,23 @@ function App() {
         <section className="panel hero-panel">
           <p className="eyebrow">Unlimited Firepower</p>
           <h1>无限火力，谁与争锋</h1>
-          <p className="hero-copy">
-            这是一个只给三个人用的私密战绩面板。每次有人加一次记录，另外两个人都会同步收到邮件战报。
-          </p>
           <div className="hero-points">
             {ROSTER.map((member) => (
               <span key={member.key}>
-                {member.displayName}
-                {member.email ? ` · ${member.email}` : ' · 邮箱待定'}
+                {member.displayName} · {member.email}
               </span>
             ))}
           </div>
           <div className="fire-banner">
             <strong>战区规则</strong>
-            <p>只允许固定成员登录。当前开放注册邮箱：`cmd` 和 `小刚`。</p>
+            <p>只允许固定成员登录。</p>
           </div>
         </section>
 
         <section className="panel auth-panel">
           <div className="auth-switch">
-            <button
-              type="button"
-              className={authMode === 'signin' ? 'active' : ''}
-              onClick={() => setAuthMode('signin')}
-            >
+            <button type="button" className="active">
               登录
-            </button>
-            <button
-              type="button"
-              className={authMode === 'signup' ? 'active' : ''}
-              onClick={() => setAuthMode('signup')}
-            >
-              注册
             </button>
           </div>
 
@@ -503,7 +465,7 @@ function App() {
             </label>
 
             <button type="submit" className="primary-button" disabled={working}>
-              {working ? '处理中…' : authMode === 'signin' ? '进入战场' : '创建账号'}
+              {working ? '处理中…' : '进入战场'}
             </button>
           </form>
 

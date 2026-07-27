@@ -44,7 +44,7 @@ Copy-Item .env.example .env
 
 3. 在 Supabase SQL Editor 里执行 [supabase/schema.sql](./supabase/schema.sql)
 
-4. 到 Supabase Auth 里开启邮箱注册，并配置站点地址
+4. 到 Supabase Auth 里预先创建这 3 个账号，并配置站点地址
 
 5. 在 EmailJS 后台创建：
 
@@ -103,7 +103,7 @@ npm run dev
 
 ## 当前功能
 
-- 邮箱密码注册 / 登录
+- 邮箱密码登录
 - 每人只能插入自己的记录
 - 今日 / 本周 / 本月 / 本季度 / 年度排行榜
 - 最近动态流
@@ -113,9 +113,9 @@ npm run dev
 
 - `小刚`: `yichunhua137@gmail.com`
 - `cmd`: `brriliantcmd@gmail.com`
-- `校长`: 邮箱待定
+- `校长`: `jiangyosuf@gmail.com`
 
-前端目前已经限制为固定成员站点，非名单内邮箱不能注册或登录。
+前端目前已经限制为固定成员站点，非名单内邮箱不能登录；注册入口也已移除。
 
 ## 可以继续增强的点
 
