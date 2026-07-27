@@ -1,18 +1,34 @@
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+function buildEmailHtml({ recipientName, actorName, actorEmail, totalToday, totalWeek, recordedAt }) {
+  return `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f1f1f;">
+      <h2 style="margin-bottom: 12px;">无限火力战报</h2>
+      <p>${recipientName}，你好。</p>
+      <p><strong>${actorName}</strong> 刚刚新增了一次记录。</p>
+      <ul>
+        <li>成员邮箱：${actorEmail}</li>
+        <li>今日次数：${totalToday}</li>
+        <li>本周次数：${totalWeek}</li>
+        <li>记录时间：${recordedAt}</li>
+      </ul>
+      <p>打开面板查看最新排行。</p>
+    </div>
+  `
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST')
     return response.status(405).json({ message: 'Method not allowed.' })
   }
 
-  const {
-    EMAILJS_SERVICE_ID,
-    EMAILJS_TEMPLATE_ID,
-    EMAILJS_PUBLIC_KEY,
-    EMAILJS_PRIVATE_KEY,
-  } = process.env
+  const { RESEND_API_KEY, RESEND_FROM_EMAIL } = process.env
 
-  if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY || !EMAILJS_PRIVATE_KEY) {
-    return response.status(500).json({ message: 'EmailJS environment variables are incomplete.' })
+  if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
+    return response.status(500).json({ message: 'Resend environment variables are incomplete.' })
   }
 
   const { actorName, actorEmail, totalToday, totalWeek, recordedAt, recipients } = request.body ?? {}
@@ -24,31 +40,22 @@ export default async function handler(request, response) {
   try {
     await Promise.all(
       recipients.map(async (recipient) => {
-        const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            service_id: EMAILJS_SERVICE_ID,
-            template_id: EMAILJS_TEMPLATE_ID,
-            user_id: EMAILJS_PUBLIC_KEY,
-            accessToken: EMAILJS_PRIVATE_KEY,
-            template_params: {
-              to_name: recipient.name,
-              to_email: recipient.email,
-              actor_name: actorName,
-              actor_email: actorEmail,
-              total_today: totalToday,
-              total_week: totalWeek,
-              recorded_at: recordedAt,
-            },
+        const { error } = await resend.emails.send({
+          from: RESEND_FROM_EMAIL,
+          to: recipient.email,
+          subject: `战报提醒：${actorName} 新增了一次记录`,
+          html: buildEmailHtml({
+            recipientName: recipient.name,
+            actorName,
+            actorEmail,
+            totalToday,
+            totalWeek,
+            recordedAt,
           }),
         })
 
-        if (!emailResponse.ok) {
-          const message = await emailResponse.text()
-          throw new Error(message || 'EmailJS rejected the request.')
+        if (error) {
+          throw new Error(error.message || 'Resend rejected the request.')
         }
       }),
     )

@@ -368,7 +368,7 @@ function App() {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
-        setNotice(`本次火力已入榜，但邮件发送失败：${body.message || '请检查 EmailJS 配置。'}`)
+        setNotice(`本次火力已入榜，但邮件发送失败：${body.message || '请检查 Resend 配置。'}`)
         return
       }
 

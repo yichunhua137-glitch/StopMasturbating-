@@ -7,20 +7,21 @@
 - 前端：React 18
 - 部署：Vercel
 - 后端与鉴权：Supabase
-- 邮件通知：EmailJS
+- 邮件通知：Resend
 
-你提到的包名大概率是 `@emailjs/browser`。这个项目里我没有把它直接放到前端，而是改成了 `Vercel Serverless Function + EmailJS REST API`，这样 `EmailJS Private Key` 不会暴露给浏览器。
+邮件现在使用 `Vercel Serverless Function + Resend SDK`，不会把邮件密钥暴露给浏览器。
 
-EmailJS 官方 `/send` REST API 当前需要：
+根据 Resend 官方文档，当前接入需要：
 
-- `service_id`
-- `template_id`
-- `user_id`：Public Key
-- `accessToken`：Private Key
+- `RESEND_API_KEY`
+- 一个已验证的发送域名
+- 一个属于该已验证域名的发件地址，例如 `notifications@your-domain.com`
 
 参考文档：
 
-- https://www.emailjs.com/docs/rest-api/send/
+- https://resend.com/docs/api-reference/introduction
+- https://resend.com/docs/dashboard/domains/introduction
+- https://resend.com/docs/send-with-nextjs
 
 ## 本地启动
 
@@ -46,22 +47,11 @@ Copy-Item .env.example .env
 
 4. 到 Supabase Auth 里预先创建这 3 个账号，并配置站点地址
 
-5. 在 EmailJS 后台创建：
+5. 在 Resend 后台完成：
 
-- 一个 email service
-- 一个 template
-- 一个 Public Key
-- 一个 Private Key
-
-模板里至少用到这些变量：
-
-- `to_name`
-- `to_email`
-- `actor_name`
-- `actor_email`
-- `total_today`
-- `total_week`
-- `recorded_at`
+- 创建 API Key
+- 验证你自己的发送域名
+- 准备一个发件地址，例如 `notifications@your-domain.com`
 
 6. 启动开发环境
 
@@ -77,10 +67,8 @@ npm run dev
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-- `EMAILJS_SERVICE_ID`
-- `EMAILJS_TEMPLATE_ID`
-- `EMAILJS_PUBLIC_KEY`
-- `EMAILJS_PRIVATE_KEY`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
 
 4. 重新部署
 
