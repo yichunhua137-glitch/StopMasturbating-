@@ -210,6 +210,28 @@ h3 {
   color: var(--text);
 }
 
+.member-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.member-chip {
+  padding: 14px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 147, 95, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.member-chip.active {
+  color: white;
+  border-color: rgba(255, 125, 46, 0.45);
+  background: linear-gradient(135deg, rgba(255, 106, 0, 0.84), rgba(255, 34, 0, 0.84));
+  box-shadow: 0 10px 24px rgba(255, 80, 0, 0.22);
+}
+
 .auth-form input:focus {
   outline: 2px solid rgba(183, 74, 31, 0.18);
   border-color: rgba(183, 74, 31, 0.46);
@@ -240,6 +262,7 @@ h3 {
 
 .primary-button:hover,
 .secondary-button:hover,
+.member-chip:hover,
 .auth-switch button:hover,
 .period-tabs button:hover {
   transform: translateY(-1px);
@@ -414,6 +437,10 @@ h3 {
   }
 
   .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .member-picker {
     grid-template-columns: 1fr;
   }
 

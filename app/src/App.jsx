@@ -17,19 +17,26 @@ const ROSTER = [
 ]
 
 const INITIAL_AUTH = {
-  email: '',
+  memberKey: ROSTER[0].key,
   password: '',
 }
 
 const allowedEmailMap = ROSTER.reduce((accumulator, member) => {
-  if (member.email) {
-    accumulator[member.email.toLowerCase()] = member
-  }
+  accumulator[member.email.toLowerCase()] = member
+  return accumulator
+}, {})
+
+const rosterByKey = ROSTER.reduce((accumulator, member) => {
+  accumulator[member.key] = member
   return accumulator
 }, {})
 
 function getRosterMemberByEmail(email) {
   return allowedEmailMap[email?.toLowerCase?.() ?? ''] ?? null
+}
+
+function getRosterMemberByKey(memberKey) {
+  return rosterByKey[memberKey] ?? null
 }
 
 function startOfDay(date) {
@@ -94,12 +101,10 @@ function buildFixedProfiles(profiles) {
 
     return {
       id: matchedProfile?.id ?? member.key,
-      email: member.email,
       display_name: member.displayName,
       created_at: matchedProfile?.created_at ?? null,
       status: member.status,
       isRegistered: Boolean(matchedProfile),
-      isRosterPlaceholder: !matchedProfile,
     }
   })
 }
@@ -235,9 +240,7 @@ function App() {
     const counts = profiles.map((profile) => ({
       userId: profile.id,
       displayName: profile.display_name,
-      email: profile.email,
       total: 0,
-      status: profile.status,
       isRegistered: profile.isRegistered,
     }))
 
@@ -293,18 +296,17 @@ function App() {
     setError('')
     setNotice('')
 
-    const normalizedEmail = authForm.email.trim().toLowerCase()
-    const rosterMember = getRosterMemberByEmail(normalizedEmail)
+    const rosterMember = getRosterMemberByKey(authForm.memberKey)
 
     if (!rosterMember) {
       setWorking(false)
-      setError('只允许固定三人使用。目前开放的邮箱只有 cmd 和小刚。')
+      setError('成员不存在，请刷新页面后重试。')
       return
     }
 
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
+        email: rosterMember.email,
         password: authForm.password,
       })
 
@@ -313,10 +315,13 @@ function App() {
       }
 
       setNotice(`欢迎回来，${rosterMember.displayName}。`)
-
       setAuthForm(INITIAL_AUTH)
     } catch (submitError) {
-      setError(submitError.message || '认证失败，请稍后重试。')
+      if (submitError.message === 'Invalid login credentials') {
+        setError('登录失败。Supabase 里还没有这个账号，或者密码和你在 Supabase 里设置的不一致。')
+      } else {
+        setError(submitError.message || '认证失败，请稍后重试。')
+      }
     } finally {
       setWorking(false)
     }
@@ -341,38 +346,7 @@ function App() {
       }
 
       await loadDashboard()
-
-      const recipients = ROSTER.filter(
-        (member) => member.email && member.email.toLowerCase() !== session.user.email.toLowerCase(),
-      ).map((member) => ({
-        email: member.email,
-        name: member.displayName,
-      }))
-
-      const payload = {
-        actorName: currentMember.displayName,
-        actorEmail: session.user.email,
-        totalToday: summary.today + 1,
-        totalWeek: summary.week + 1,
-        recordedAt: new Date().toISOString(),
-        recipients,
-      }
-
-      const response = await fetch('/api/notify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        setNotice(`本次火力已入榜，但邮件发送失败：${body.message || '请检查 Resend 配置。'}`)
-        return
-      }
-
-      setNotice('本次火力已记入榜单，另外两位也会收到战报。')
+      setNotice('本次火力已记入榜单。')
     } catch (actionError) {
       setError(actionError.message || '保存失败，请稍后重试。')
     } finally {
@@ -418,9 +392,7 @@ function App() {
           <h1>无限火力，谁与争锋</h1>
           <div className="hero-points">
             {ROSTER.map((member) => (
-              <span key={member.key}>
-                {member.displayName} · {member.email}
-              </span>
+              <span key={member.key}>{member.displayName}</span>
             ))}
           </div>
           <div className="fire-banner">
@@ -438,16 +410,22 @@ function App() {
 
           <form className="auth-form" onSubmit={handleAuthSubmit}>
             <label>
-              邮箱
-              <input
-                type="email"
-                value={authForm.email}
-                onChange={(event) =>
-                  setAuthForm((current) => ({ ...current, email: event.target.value }))
-                }
-                placeholder="请输入固定成员邮箱"
-                required
-              />
+              成员
+              <div className="member-picker" role="radiogroup" aria-label="成员选择">
+                {ROSTER.map((member) => (
+                  <button
+                    type="button"
+                    key={member.key}
+                    className={authForm.memberKey === member.key ? 'member-chip active' : 'member-chip'}
+                    onClick={() =>
+                      setAuthForm((current) => ({ ...current, memberKey: member.key }))
+                    }
+                    aria-pressed={authForm.memberKey === member.key}
+                  >
+                    {member.displayName}
+                  </button>
+                ))}
+              </div>
             </label>
 
             <label>
@@ -458,7 +436,7 @@ function App() {
                 onChange={(event) =>
                   setAuthForm((current) => ({ ...current, password: event.target.value }))
                 }
-                placeholder="至少 6 位"
+                placeholder="请输入你在 Supabase 里设置的密码"
                 minLength={6}
                 required
               />
@@ -513,9 +491,9 @@ function App() {
 
         <div className="cta-row">
           <button type="button" className="primary-button big-button" onClick={handleAddEvent} disabled={working}>
-            {working ? '战报提交中…' : '点火 +1'}
+            {working ? '提交中…' : '点火 +1'}
           </button>
-          <p className="helper-text">每次点火都会进入个人记录，并向另外两位发送邮件战报。</p>
+          <p className="helper-text">每次点火都会进入个人记录，并更新总榜数据。</p>
         </div>
 
         {notice ? <p className="message success">{notice}</p> : null}
@@ -548,7 +526,7 @@ function App() {
               <div className="rank-badge">{index + 1}</div>
               <div>
                 <h3>{entry.displayName}</h3>
-                <p>{entry.email || '邮箱待定'}</p>
+                <p>{entry.isRegistered ? '已入场' : '待入场'}</p>
               </div>
               <div className="rank-meta">
                 <strong>{entry.total} 次</strong>
@@ -576,7 +554,7 @@ function App() {
               <article className="feed-row" key={item.id}>
                 <div>
                   <h3>{item.profile?.display_name || '未知成员'}</h3>
-                  <p>{item.profile?.email || '邮箱待定'}</p>
+                  <p>战报记录</p>
                 </div>
                 <time dateTime={item.created_at}>{formatDate(item.created_at)}</time>
               </article>
